@@ -188,7 +188,7 @@ void
 lock_acquire(struct lock *lock)
 {
       KASSERT(lock != NULL);
-      KASSERT(!lock_do_i_hold);
+      KASSERT(!lock_do_i_hold(lock));
 
       spinlock_acquire(&(lock->lk_spinlock));
       while(lock->hold) {
@@ -198,14 +198,14 @@ lock_acquire(struct lock *lock)
         spinlock_acquire(&(lock->lk_spinlock));
       }
       lock->hold = true;
-      lock->owener = curthread;
+      lock->owner = curthread;
       spinlock_release(&(lock->lk_spinlock));
 }
 
 void
 lock_release(struct lock *lock)
 {
-      KASSERT(lock_do_i_hold);
+      KASSERT(lock_do_i_hold(lock));
       KASSERT(lock != NULL);
 
       spinlock_acquire(&(lock->lk_spinlock));
@@ -263,8 +263,8 @@ cv_destroy(struct cv *cv)
 void
 cv_wait(struct cv *cv, struct lock *lock)
 {
-        LASSERT(cv != NULL);
-        LASSERT(lock != NULL);
+        KASSERT(cv != NULL);
+        KASSERT(lock != NULL);
         KASSERT(lock->owner == curthread);
 
         wchan_lock(cv->cv_wc);
@@ -277,8 +277,8 @@ void
 cv_signal(struct cv *cv, struct lock *lock)
 {
         KASSERT(lock->owner == curthread);
-        LASSERT(cv != NULL);
-        LASSERT(lock != NULL)
+        KASSERT(cv != NULL);
+        KASSERT(lock != NULL);
 
         wchan_wakeone(cv->cv_wc);
 
@@ -288,7 +288,7 @@ void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
         KASSERT(lock->owner == curthread);
-        LASSERT(cv != NULL);
-        LASSERT(lock != NULL);
+        KASSERT(cv != NULL);
+        KASSERT(lock != NULL);
         wchan_wakeall(cv->cv_wc);
 }
