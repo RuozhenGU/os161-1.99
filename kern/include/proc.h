@@ -38,12 +38,20 @@
 
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
+#include "opt-A2.h"
 
 struct addrspace;
 struct vnode;
 #ifdef UW
 struct semaphore;
+
 #endif // UW
+
+#ifdef OPT_A2:
+	struct lock *lk_pid;
+	pid_t counter_pid;
+#endif
+
 
 /*
  * Process structure.
@@ -66,6 +74,17 @@ struct proc {
      system calls, since each process will need to keep track of all files
      it has opened, not just the console. */
   struct vnode *console;                /* a vnode for the console device */
+#endif
+
+#ifdef OPT_A2:
+	pid_t pid;
+	int countChild;
+	struct cv * cv_waitChild;
+	pid_t childArray[64]; //Maximum 64 childrens
+
+	volatile int statucCode;
+	volatile int exitCode;
+	volatile int exitState;
 #endif
 
 	/* add more material here as needed */

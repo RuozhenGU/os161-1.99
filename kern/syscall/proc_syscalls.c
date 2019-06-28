@@ -24,6 +24,10 @@ void sys__exit(int exitcode) {
   DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n",exitcode);
 
   KASSERT(curproc->p_addrspace != NULL);
+
+
+
+
   as_deactivate();
   /*
    * clear p_addrspace before calling as_destroy. Otherwise if
@@ -42,11 +46,12 @@ void sys__exit(int exitcode) {
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
-  
+
   thread_exit();
   /* thread_exit() does not return, so we should never get here */
   panic("return from thread_exit in sys_exit\n");
 }
+
 
 
 /* stub handler for getpid() system call                */
@@ -72,7 +77,7 @@ sys_waitpid(pid_t pid,
 
   /* this is just a stub implementation that always reports an
      exit status of 0, regardless of the actual exit status of
-     the specified process.   
+     the specified process.
      In fact, this will return 0 even if the specified process
      is still running, and even if it never existed in the first place.
 
@@ -92,3 +97,48 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
+int sys_fork(struct trapframe *tf, pid_t *retval) {
+  KASSERT(tf);
+	KASSERT(retval);
+  struct proc * childProc = proc_create_runprogram(curproc->pname);
+
+  /* check if childproc is failed due to memory constraint */
+
+  if (!childProc) *retval = 1; return ENOMEM;
+
+  if (childProc->pid > 0) {
+    /* create new addr space and copy the old one over */
+    int result = as_copy(curproc->p_addrspace, &(childProc->p_addrspace))
+    if (result != 0){
+      /* no memory */
+      proc_destory(childProc);
+      return result;
+    }
+    spinlock_acquire(&curproc->p_lock);
+    curproc->countChild++;
+    childProc->childArray[curproc->countChild] = childProc->pid;
+    spinlock_release(&curproc->p_lock);
+
+    struct trapframe *childTf = kmalloc(sizeof(struct trapframe));
+
+    if (childTf == NULL) *retval = 1; return ENOMEM;
+
+	  memcpy(childTf,tf,sizeof(struct trapframe));
+    result = thread_fork(p->p_name, childProc, (void*)enter_forked_process, (void*)childTf,0);
+    if (result) {
+      *retval = 1;
+      proc_destory(childProc);
+      return result_fork;
+    }
+    *retval = child_pid; //success
+    kfree(childTf);
+  } else {
+    *retval = 1;
+    proc_destory(childProc);
+    return 0;
+
+  }
+
+
+
+}
