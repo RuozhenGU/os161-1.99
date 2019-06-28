@@ -11,7 +11,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  * 3. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
+	 *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY AND CONTRIBUTORS ``AS IS'' AND
@@ -65,5 +65,10 @@ int sys_getpid(pid_t *retval);
 int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
 
 #endif // UW
+#if OPT_A2
+int sys_fork(struct trapframe *tf, pid_t *retval);
+int sys_execv(userptr_t arg_progname, userptr_t arg_args);
+#endif // OPT_A2
+
 
 #endif /* _SYSCALL_H_ */

@@ -50,6 +50,8 @@
 #include <vfs.h>
 #include <synch.h>
 #include <kern/fcntl.h>
+#include <syscall.h>
+#include "opt-A2.h"
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -221,7 +223,8 @@ proc_bootstrap(void)
 	if (lk_pid == NULL) {
 		panic("could not create counter_lock lock\n");
 	}
-	counter_pid = PID_MIN;
+	int c = 2;
+	counter_pid = (pid_t) c ;
 #endif /* OPT_A2 */
 
 

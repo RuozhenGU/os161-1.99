@@ -47,7 +47,7 @@ struct semaphore;
 
 #endif // UW
 
-#ifdef OPT_A2:
+#ifdef OPT_A2
 	struct lock *lk_pid;
 	pid_t counter_pid;
 #endif
@@ -76,7 +76,7 @@ struct proc {
   struct vnode *console;                /* a vnode for the console device */
 #endif
 
-#ifdef OPT_A2:
+#ifdef OPT_A2
 	pid_t pid;
 	int countChild;
 	struct cv * cv_waitChild;

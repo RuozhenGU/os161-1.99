@@ -9,6 +9,10 @@
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
+#include <vfs.h>
+#include <kern/fcntl.h>
+#include <mips/trapframe.h>
+#include "opt-A2.h"
 
   /* this implementation of sys__exit does not do anything with the exit code */
   /* this needs to be fixed to get exit() and waitpid() working properly */
@@ -96,11 +100,11 @@ sys_waitpid(pid_t pid,
   *retval = pid;
   return(0);
 }
-
+#ifdef OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval) {
   KASSERT(tf);
 	KASSERT(retval);
-  struct proc * childProc = proc_create_runprogram(curproc->pname);
+  struct proc * childProc = proc_create_runprogram(curproc->p_name);
 
   /* check if childproc is failed due to memory constraint */
 
@@ -108,10 +112,10 @@ int sys_fork(struct trapframe *tf, pid_t *retval) {
 
   if (childProc->pid > 0) {
     /* create new addr space and copy the old one over */
-    int result = as_copy(curproc->p_addrspace, &(childProc->p_addrspace))
+    int result = as_copy(curproc->p_addrspace, &(childProc->p_addrspace));
     if (result != 0){
       /* no memory */
-      proc_destory(childProc);
+      proc_destroy(childProc);
       return result;
     }
     spinlock_acquire(&curproc->p_lock);
@@ -124,21 +128,19 @@ int sys_fork(struct trapframe *tf, pid_t *retval) {
     if (childTf == NULL) *retval = 1; return ENOMEM;
 
 	  memcpy(childTf,tf,sizeof(struct trapframe));
-    result = thread_fork(p->p_name, childProc, (void*)enter_forked_process, (void*)childTf,0);
+    result = thread_fork("child process", childProc, (void*)enter_forked_process, (void*)childTf,0);
     if (result) {
       *retval = 1;
-      proc_destory(childProc);
-      return result_fork;
+      proc_destroy(childProc);
+      return result;
     }
-    *retval = child_pid; //success
+    *retval = childProc->pid; //success
     kfree(childTf);
   } else {
     *retval = 1;
-    proc_destory(childProc);
+    proc_destroy(childProc);
     return 0;
 
   }
-
-
-
 }
+#endif
