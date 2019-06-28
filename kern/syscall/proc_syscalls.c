@@ -100,8 +100,10 @@ sys_waitpid(pid_t pid,
   *retval = pid;
   return(0);
 }
+
 #ifdef OPT_A2
-int sys_fork(struct trapframe *tf, pid_t *retval) {
+int
+sys_fork(struct trapframe *tf, pid_t *retval) {
   KASSERT(tf);
 	KASSERT(retval);
   struct proc * childProc = proc_create_runprogram(curproc->p_name);
