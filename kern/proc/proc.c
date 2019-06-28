@@ -52,6 +52,8 @@
 #include <kern/fcntl.h>
 #include <syscall.h>
 #include "opt-A2.h"
+#include <mips/trapframe.h>
+
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
