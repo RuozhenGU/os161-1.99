@@ -226,8 +226,7 @@ NULL pointer. In the new user program, argv[argc] should == NULL.
 */
 
 int
-sys_execv(userptr_t interface_progname, userptr_t interface_args[])
-{
+sys_execv(userptr_t interface_progname, userptr_t interface_args){
   char * progname = (char*) interface_progname;
 	char ** args = (char**) interface_args;
 
