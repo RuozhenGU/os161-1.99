@@ -270,8 +270,6 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
 		return result;
 	}
 
-	/* We should be a new process. */
-	KASSERT(curproc_getas() == NULL);
 
 	/* Create a new address space. */
 	as = as_create();
