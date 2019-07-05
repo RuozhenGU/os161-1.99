@@ -45,7 +45,7 @@
 #include <syscall.h>
 #include <test.h>
 #include "opt-A2.h"
-
+#include <copyinout.h>
 /*
  * Load program "progname" and start running it in usermode.
  * Does not return except on error.
