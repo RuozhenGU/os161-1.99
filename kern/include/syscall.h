@@ -69,6 +69,7 @@ int isExist(pid_t pid);
 
 #if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval);
+int sys_execv(char * , char ** );
 #endif // OPT_A2
 
 
