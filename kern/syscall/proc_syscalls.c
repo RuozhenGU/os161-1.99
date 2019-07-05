@@ -13,7 +13,6 @@
 #include <kern/fcntl.h>
 #include <mips/trapframe.h>
 #include "opt-A2.h"
-#include <unistd.h>
 
 #if OPT_A2
 static void isExist(pid_t pid, int *child_flag) {
@@ -233,7 +232,7 @@ sys_execv(const userptr_t *interface_progname, userptr_t *interface_args[])
 	char ** args = (char**) interface_args;
 
   /* Sanity Check */
-  if(program == NULL || args == NULL) return EFAULT;
+  if(progname == NULL || args == NULL) return EFAULT;
 
 	struct addrspace *as;
 	struct vnode *v;
@@ -312,20 +311,20 @@ sys_execv(const userptr_t *interface_progname, userptr_t *interface_args[])
 
   /* copy program argument strings to stack first */
 	for (int i = argc - 1; i >= 0; i--) {
-		*stackptr -= ROUNDUP((sizeof(char) * (strlen(argv[i]) + 1)), 8);
-		strAddr[i] = *stackptr;
-		result = copyoutstr(argv[i], (userptr_t)(*stackptr), (sizeof(char) * (strlen(argv[i]) + 1)), NULL);
+		stackptr -= ROUNDUP((sizeof(char) * (strlen(argv[i]) + 1)), 8);
+		strAddr[i] = stackptr;
+		result = copyoutstr(argv[i], (userptr_t)(stackptr), (sizeof(char) * (strlen(argv[i]) + 1)), NULL);
     kfree(argv[i]);
     if(result) /* free memory */ return result;
 	}
 
   /* make each of the upper part of stack point to the lower corresponding string */
   for (int i = argc; i >= 0; i--) {
-    *stackptr -= ROUNDUP(sizeof(vaddr_t), 4);
-		copyout(&strAddr[i], (userptr_t)(*stackptr), ROUNDUP(sizeof(vaddr_t), 4));
+    stackptr -= ROUNDUP(sizeof(vaddr_t), 4);
+		copyout(&strAddr[i], (userptr_t)(stackptr), ROUNDUP(sizeof(vaddr_t), 4));
     if(result) /* free memory */ return result;
   }
-//}  
+//}
   /* Delete old address space */
   as_destroy(oldAddrSpc);
 	/* Warp to user mode. */
