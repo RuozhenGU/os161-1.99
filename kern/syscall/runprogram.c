@@ -113,7 +113,7 @@ runprogram(char *progname, char *argv[])
 		stackptr -= ROUNDUP((sizeof(char) * (strlen(argv[i]) + 1)), 8);
 		strAddr[i] = stackptr;
 		result = copyoutstr(argv[i], (userptr_t)(stackptr), (sizeof(char) * (strlen(argv[i]) + 1)), NULL);
-		kfree(argv[i]);
+		//kfree(argv[i]);
 		if(result) /* free memory */ return result;
 	}
 
