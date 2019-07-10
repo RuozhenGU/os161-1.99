@@ -39,6 +39,7 @@
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 #include "opt-A2.h"
+#include <synch.h>
 
 struct addrspace;
 struct vnode;
@@ -49,7 +50,12 @@ struct semaphore;
 
 #ifdef OPT_A2
 	struct lock *lk_pid;
-	pid_t counter_pid;
+	volatile pid_t counter_pid;
+	struct proc *procTable[64]; //lookup table for child PID
+	volatile int exitTable[64];
+	struct lock * lk_tb;
+	struct lock * mutex;
+	volatile int aliveTable[64];
 #endif
 
 
@@ -79,14 +85,14 @@ struct proc {
 #ifdef OPT_A2
 	pid_t pid;
 	int countChild;
-	struct cv * cv_waitChild;
+	struct cv * cv_child;
 	pid_t childArray[64]; //Maximum 64 childrens
+	struct lock *lk_child;
+	volatile bool isAlive;
+	volatile int code;
+	volatile int status;
 
-	volatile int statucCode;
-	volatile int exitCode;
-	volatile int exitState;
 #endif
-
 	/* add more material here as needed */
 };
 

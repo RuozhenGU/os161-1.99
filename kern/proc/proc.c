@@ -52,6 +52,8 @@
 #include <kern/fcntl.h>
 #include <syscall.h>
 #include "opt-A2.h"
+#include <mips/trapframe.h>
+
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -105,12 +107,6 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-#if OPT_A2
-	lock_acquire(lk_pid);
-	proc->pid = counter_pid;
-	counter_pid++;
-	lock_release(lk_pid);
-#endif /* OPT_A2 */
 
 	return proc;
 }
@@ -171,7 +167,9 @@ proc_destroy(struct proc *proc)
 	  vfs_close(proc->console);
 	}
 #endif // UW
-
+#if OPT_A2
+    cv_destroy(procTable[proc->pid - 2]->cv_child);
+#endif
 	threadarray_cleanup(&proc->p_threads);
 	spinlock_cleanup(&proc->p_lock);
 
@@ -220,11 +218,19 @@ proc_bootstrap(void)
 
 #if OPT_A2
 	lk_pid = lock_create("pid_lock");
+
 	if (lk_pid == NULL) {
-		panic("could not create counter_lock lock\n");
+		panic("could not create lock\n");
 	}
 	int c = 2;
-	counter_pid = (pid_t) c ;
+	counter_pid = (pid_t) c;
+	lk_tb = lock_create("table_lock");
+
+
+	if (!lk_tb) panic("could not create lock\n");
+	mutex = lock_create("mutex");
+	if (!mutex) panic("could not create lock\n");
+	for (int i = 0; i < 64; i++) { aliveTable[i] = true; }
 #endif /* OPT_A2 */
 
 
@@ -290,6 +296,30 @@ proc_create_runprogram(const char *name)
 	proc_count++;
 	V(proc_count_mutex);
 #endif // UW
+#if OPT_A2
+	lock_acquire(lk_pid);
+	proc->pid = counter_pid;
+	procTable[(int)counter_pid - 2] = proc;
+	counter_pid++;
+
+
+	lock_release(lk_pid);
+	proc->countChild = 0;
+	proc->lk_child = lock_create("child");
+
+	if (proc->lk_child == NULL) {
+		panic("could not create lock\n");
+	}
+	proc->cv_child = cv_create("cv_proc");
+	proc->isAlive = true;
+	if (!proc->cv_child) {
+        kfree(proc->p_name);
+        kfree(proc);
+        return NULL;
+  }
+
+#endif /* OPT_A2 */
+
 
 	return proc;
 }
