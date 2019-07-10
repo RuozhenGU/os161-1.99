@@ -62,7 +62,7 @@ runprogram(char *progname, char *argv[])
 
 #if OPT_A2
 		//(void) args;
-		int argc = 0;
+		unsigned long argc = 0;
 		while(argv[argc])	argc++;
 
 #endif //OPT_A2
@@ -104,7 +104,7 @@ runprogram(char *progname, char *argv[])
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
-#if OPT_A2
+//#if OPT_A2
 	vaddr_t strAddr[argc+1];
 	strAddr[argc] = 0;
 
@@ -129,11 +129,8 @@ runprogram(char *progname, char *argv[])
 	enter_new_process(argc /*argc*/, (userptr_t)stackptr /*userspace addr of argv*/,
 				stackptr, entrypoint);
 
-# else
-	/* Warp to user mode. */
-	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
-			  stackptr, entrypoint);
-#endif //OPT_A2
+
+
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
 	return EINVAL;
