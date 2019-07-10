@@ -53,19 +53,12 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 int
-runprogram(char *progname, char *argv[])
+runprogram(char *progname, int argc char *argv[])
 {
 	struct addrspace *as;
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
 	int result;
-
-#if OPT_A2
-		//(void) args;
-		unsigned long argc = 0;
-		while(argv[argc])	argc++;
-
-#endif //OPT_A2
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
