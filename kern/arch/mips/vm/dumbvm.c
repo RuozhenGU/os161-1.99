@@ -56,15 +56,19 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 #if OPT_A3
 struct core_map {
-	paddr_t baseAddr;
-	bool inUse;
-	int ownNext;
-	int size; //number of frames
+	paddr_t baseAddr; // != base of physical mem
+	int * inUse; //Array
+	int * containNext; //Array
+	int size; //number of available frames/Size of arrays
 };
 
 struct coremap *coremap;
 
+int frameCount = 0;
+
 bool iscmapCreated = false;
+
+static struct spinlock spinlock_coremap;
 
 #endif //OPT_A3
 
@@ -75,18 +79,35 @@ vm_bootstrap(void)
 	//add_lo and hi are physical addr
 	paddr_t addr_lo, addr_hi;
 
-	//Get the remaining available physical memory in sys
+	//initialize spinlock for core_map
+	spinlock_init(&spinlock_coremap);
+
+	//Get the remaining available physical memory in sys in case ram_stealmen ran before
 	ram_getsize(&addr_lo, &addr_hi);
 
 	//Converts a physical address to a kernel virtual address.
-	coremap = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
+	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
 
-	//Update frame numbers
-	coremap->size = (addr_hi - addr_lo) / PAGE_SIZE;
+	//Count frame numbers = size of array
+	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
-	//Calc size of coremap so far
-	addr_lo += sizeof(struct coremap) * coremap->size;
+	//Insert coremap in physical mem, find new base addr of available phsical addr
+	addr_lo += sizeof(struct core_map) * frameCount;
 
+	//After insertion, if start physical addr does not align the start of one page/frame, update
+	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
+
+	core_map->baseAddr = addr_lo;
+
+	core_map->size = (paddr_hi - paddr_lo) / PAGE_SIZE; /* recalculate */
+
+	for (int i = 0; i < frameCount; i++) {
+		cmap->inUse[i] = 0;
+		cmap->containNext[i] = 0;
+	}
+
+	/* coremap is successfully built */
+	iscmapCreated = true;
 
 #endif //OPT_A3
 }
@@ -95,14 +116,60 @@ static
 paddr_t
 getppages(unsigned long npages)
 {
+#if OPT_A3
+
+	int pageRequired = (int) npages;
+
 	paddr_t addr;
 
 	spinlock_acquire(&stealmem_lock);
 
-	addr = ram_stealmem(npages);
+	if (iscmapCreated == false){
+		addr = ram_stealmem(npages);
+		kprintf("physical memory stealed without coremap!");
 
+		spinlock_release(&stealmem_lock);
+		return addr;
+	} else /* core map exists */ {
+		for(int i = 0; i < frameCount; i++) {
+			if (core_map->inUse[i] == 0) {
+				int sofar = 0;
+				/* check if the free mem is enough to use */
+				while(sofar < pageRequired && sofar < frameCount) {
+					if (core_map->inUse[i]) break; //ensure the mem loc is still available
+					count++; sofar++;
+				}
+				if (! count >= pageRequired) {
+					continue; /*not enough*/
+				} else {
+					/* update status of those found entries on physical mem */
+					for (int j = 0; j < count; j++) {
+						const int targetLoc = i + j;
+						/* update core map*/
+						core_map->inUse[target] = 1;
+						if (j != count - 1) core_map->containNext[target] = 1;
+						else core_map->containNext[target] = 0; //last element
+				}
+				addr = i * PAGE_SIZE; //beginning addr grabbed
+				spinlock_release(&stealmem_lock);
+				return addr + core_map->baseAddr;
+				}
+			}
+			/* else case: continue until free mem is found */
+		} //for loop end
+		/* memory error */
+		kprintf("Error! Available physical memory is not enough! Try to free some before acquiring.\n");
+		spinlock_release(&stealmem_lock);
+		return ENOMEM;
+	} //if coremap exist end
+#elseif
+	/* no core map case */
+	spinlock_acquire(&stealmem_lock);
+	addr = ram_stealmem(npages);
 	spinlock_release(&stealmem_lock);
 	return addr;
+
+#endif //OPT_A3
 }
 
 /* Allocate/free some kernel-space virtual pages */
@@ -120,9 +187,23 @@ alloc_kpages(int npages)
 void
 free_kpages(vaddr_t addr)
 {
-	/* nothing - leak the memory. */
-
-	(void)addr;
+#if OPT_A3
+	if (iscmapCreated == false) {
+		(void) addr;
+		return;
+	}
+	spinlock_acquire(&spinlock_coremap);
+	int targetAddr = addr - MIPS_KSEG0;
+	for(int i = targetAddr; i < frameNum && core_map[i]->inUse != 1; i++){
+		core_map->inUse[i] = 0;
+		if(core_map[i]->containNext[i] != 1) break;
+		else core_map[i]->containNext[i] == 0;
+	}
+	spinlock_release(&spinlock_coremap);
+#else
+	(void) addr;
+	return;
+#endif //OPT_A3
 }
 
 void
@@ -262,7 +343,9 @@ as_create(void)
 	if (as==NULL) {
 		return NULL;
 	}
-
+#if OPT_A3
+	as->loadCode_done = false;
+#endif
 	as->as_vbase1 = 0;
 	as->as_pbase1 = 0;
 	as->as_npages1 = 0;
@@ -277,6 +360,11 @@ as_create(void)
 void
 as_destroy(struct addrspace *as)
 {
+#if OPT_A3
+	free_kpages(PADDR_TO_KVADDR(as->as_pbase1));
+	free_kpages(PADDR_TO_KVADDR(as->as_pbase2));
+	free_kpages(PADDR_TO_KVADDR(as->as_stackpbase));
+#endif //OPT_A3
 	kfree(as);
 }
 
@@ -385,6 +473,7 @@ as_prepare_load(struct addrspace *as)
 	return 0;
 }
 
+//tlb entry = invalid
 int
 as_complete_load(struct addrspace *as)
 {

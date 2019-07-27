@@ -117,43 +117,44 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	}
 
 #if OPT_A3
-	if (sig == EX_MOD) {
-		(void)epc;
-		(void)vaddr;
-
-		/* copy sys_exit() */
-		struct addrspace *as;
-		struct proc *p = curproc;
-
-		DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n", sig);
-
-		KASSERT(curproc->p_addrspace != NULL);
-		lock_acquire(lk_tb);
-
-		curproc->isAlive = false;
-		curproc->code = sig;
-		curproc->status = _MKWAIT_EXIT(sig);
-
-		exitTable[curproc->pid - 2] = sig;
-		aliveTable[curproc->pid - 2] = false;
-
-		cv_broadcast(curproc->cv_child, lk_tb);
-
-		lock_release(lk_tb);
-
-		as_deactivate();
-		as = curproc_setas(NULL);
-	  as_destroy(as);
-		proc_remthread(curthread);
-
-	  /* if this is the last user process in the system, proc_destroy()
-	     will wake up the kernel menu thread */
-	  proc_destroy(p);
-
-	  thread_exit();
-	  /* thread_exit() does not return, so we should never get here */
-	  panic("return from thread_exit in sys_exit\n");
-	}
+	sys_exit(sig);
+	// 	if (sig == EX_MOD) {
+	// 	(void)epc;
+	// 	(void)vaddr;
+	//
+	// 	/* copy sys_exit() */
+	// 	struct addrspace *as;
+	// 	struct proc *p = curproc;
+	//
+	// 	DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n", sig);
+	//
+	// 	KASSERT(curproc->p_addrspace != NULL);
+	// 	lock_acquire(lk_tb);
+	//
+	// 	curproc->isAlive = false;
+	// 	curproc->code = sig;
+	// 	curproc->status = _MKWAIT_EXIT(sig);
+	//
+	// 	exitTable[curproc->pid - 2] = sig;
+	// 	aliveTable[curproc->pid - 2] = false;
+	//
+	// 	cv_broadcast(curproc->cv_child, lk_tb);
+	//
+	// 	lock_release(lk_tb);
+	//
+	// 	as_deactivate();
+	// 	as = curproc_setas(NULL);
+	//   as_destroy(as);
+	// 	proc_remthread(curthread);
+	//
+	//   /* if this is the last user process in the system, proc_destroy()
+	//      will wake up the kernel menu thread */
+	//   proc_destroy(p);
+	//
+	//   thread_exit();
+	//   /* thread_exit() does not return, so we should never get here */
+	//   panic("return from thread_exit in sys_exit\n");
+	// }
 
 
 #else
