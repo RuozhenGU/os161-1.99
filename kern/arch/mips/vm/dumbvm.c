@@ -325,17 +325,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 	//Find TLB is Full
-#if OPT_A3
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+#if OPT_A3
 	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done) elo &= ~TLBLO_DIRTY; //Dity bit off
+#endif //OPT_A3
 	tlb_random(ehi, elo); //Pick a random entry to pop off
 	splx(spl);
 	return 0;
-#else
-	splx(spl);
-	return EFAULT;
-#endif //OPT_A3
 }
 
 struct addrspace *
