@@ -38,6 +38,7 @@
 #include <addrspace.h>
 #include <vm.h>
 #include "opt-A3.h"
+#include <mips/trapframe.h>
 
 
 /*
@@ -55,14 +56,14 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 
 #if OPT_A3
-struct core_map {
+struct coremap {
 	paddr_t baseAddr; // != base of physical mem
 	int * inUse; //Array
 	int * containNext; //Array
 	int size; //number of available frames/Size of arrays
 };
 
-struct coremap *coremap;
+struct coremap *core_map;
 
 int frameCount = 0;
 
@@ -99,11 +100,11 @@ vm_bootstrap(void)
 
 	core_map->baseAddr = addr_lo;
 
-	core_map->size = (paddr_hi - paddr_lo) / PAGE_SIZE; /* recalculate */
+	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
 	for (int i = 0; i < frameCount; i++) {
-		cmap->inUse[i] = 0;
-		cmap->containNext[i] = 0;
+		core_map->inUse[i] = 0;
+		core_map->containNext[i] = 0;
 	}
 
 	/* coremap is successfully built */
@@ -133,7 +134,8 @@ getppages(unsigned long npages)
 	} else /* core map exists */ {
 		for(int i = 0; i < frameCount; i++) {
 			if (core_map->inUse[i] == 0) {
-				int sofar = 0;
+				int sofar = i;
+				int count = 0;
 				/* check if the free mem is enough to use */
 				while(sofar < pageRequired && sofar < frameCount) {
 					if (core_map->inUse[i]) break; //ensure the mem loc is still available
@@ -143,12 +145,12 @@ getppages(unsigned long npages)
 					continue; /*not enough*/
 				} else {
 					/* update status of those found entries on physical mem */
-					for (int j = 0; j < count; j++) {
+					for (int j = 0; j < pageRequired; j++) {
 						const int targetLoc = i + j;
 						/* update core map*/
-						core_map->inUse[target] = 1;
-						if (j != count - 1) core_map->containNext[target] = 1;
-						else core_map->containNext[target] = 0; //last element
+						core_map->inUse[targetLoc] = 1;
+						if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
+						else core_map->containNext[targetLoc] = 0; //last element
 				}
 				addr = i * PAGE_SIZE; //beginning addr grabbed
 				spinlock_release(&stealmem_lock);
@@ -194,7 +196,7 @@ free_kpages(vaddr_t addr)
 	}
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr = addr - MIPS_KSEG0;
-	for(int i = targetAddr; i < frameNum && core_map[i]->inUse != 1; i++){
+	for(int i = targetAddr; i < frameCount && core_map[i]->inUse != 1; i++){
 		core_map->inUse[i] = 0;
 		if(core_map[i]->containNext[i] != 1) break;
 		else core_map[i]->containNext[i] == 0;
@@ -236,7 +238,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
 #if OPT_A3
-				return EX_MOD
+				return EX_MOD;
 #else
 				/* We always create pages read-write, so we can't get this */
 				panic("dumbvm: got VM_FAULT_READONLY\n");
