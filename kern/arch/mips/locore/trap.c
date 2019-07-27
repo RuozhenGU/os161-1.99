@@ -116,55 +116,38 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 		break;
 	}
 
-#if OPT_A3
-	(void)epc;
-	(void)vaddr;
-	sys__exit(sig);
-	// 	if (sig == EX_MOD) {
-	// 	(void)epc;
-	// 	(void)vaddr;
-	//
-	// 	/* copy sys_exit() */
-	// 	struct addrspace *as;
-	// 	struct proc *p = curproc;
-	//
-	// 	DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n", sig);
-	//
-	// 	KASSERT(curproc->p_addrspace != NULL);
-	// 	lock_acquire(lk_tb);
-	//
-	// 	curproc->isAlive = false;
-	// 	curproc->code = sig;
-	// 	curproc->status = _MKWAIT_EXIT(sig);
-	//
-	// 	exitTable[curproc->pid - 2] = sig;
-	// 	aliveTable[curproc->pid - 2] = false;
-	//
-	// 	cv_broadcast(curproc->cv_child, lk_tb);
-	//
-	// 	lock_release(lk_tb);
-	//
-	// 	as_deactivate();
-	// 	as = curproc_setas(NULL);
-	//   as_destroy(as);
-	// 	proc_remthread(curthread);
-	//
-	//   /* if this is the last user process in the system, proc_destroy()
-	//      will wake up the kernel menu thread */
-	//   proc_destroy(p);
-	//
-	//   thread_exit();
-	//   /* thread_exit() does not return, so we should never get here */
-	//   panic("return from thread_exit in sys_exit\n");
-	// }
+	#if OPT_A3
+		struct addrspace *as;
+		struct proc *p = curproc;
+		(void)vaddr;
+		(void)epc;
+		as_deactivate();
+		  /*
+		   * clear p_addrspace before calling as_destroy. Otherwise if
+		   * as_destroy sleeps (which is quite possible) when we
+		   * come back we'll be calling as_activate on a
+		   * half-destroyed address space. This tends to be
+		   * messily fatal.
+		   */
+		as = curproc_setas(NULL);
+		as_destroy(as);
 
+		  /* detach this thread from its process */
+		  /* note: curproc cannot be used after this call */
+		proc_remthread(curthread);
 
-#else
+		  /* if this is the last user process in the system, proc_destroy()
+		     will wake up the kernel menu thread */
+		proc_destroy(p);
 
-	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
-		code, sig, trapcodenames[code], epc, vaddr);
-	panic("I don't know how to handle this\n");
-#endif //OPT_A3
+		thread_exit();
+		  /* thread_exit() does not return, so we should never get here */
+		panic("return from thread_exit in sys_exit\n");
+	#else
+		kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
+			code, sig, trapcodenames[code], epc, vaddr);
+		panic("I don't know how to handle this\n");
+	#endif
 }
 
 /*
