@@ -117,6 +117,8 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	}
 
 #if OPT_A3
+	(void)epc;
+	(void)vaddr;
 	sys__exit(sig);
 	// 	if (sig == EX_MOD) {
 	// 	(void)epc;
