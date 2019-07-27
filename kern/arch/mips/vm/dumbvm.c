@@ -127,7 +127,7 @@ getppages(unsigned long npages)
 
 	if (iscmapCreated == false){
 		addr = ram_stealmem(npages);
-		kprintf("physical memory stealed without coremap!");
+		//kprintf("physical memory stealed!");
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
@@ -242,6 +242,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 				/* We always create pages read-write, so we can't get this */
 				panic("dumbvm: got VM_FAULT_READONLY\n");
 #endif
+
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -325,6 +326,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 	//TLB is Full
+	kprintf("TLB MISS");
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 #if OPT_A3
