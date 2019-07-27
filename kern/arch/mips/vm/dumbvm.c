@@ -314,7 +314,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 #if OPT_A3
-		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadelf_complete == 1){
+		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1){
 			elo &= ~TLBLO_DIRTY;
 		}
 #endif
@@ -326,7 +326,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 #if OPT_A3
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadelf_complete == 1){
+	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1){
 		elo &= ~TLBLO_DIRTY;
 	}
 	DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
