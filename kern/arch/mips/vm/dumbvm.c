@@ -37,6 +37,8 @@
 #include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
+#include "opt-A3.h"
+
 
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
@@ -51,10 +53,42 @@
  */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
+
+#if OPT_A3
+struct core_map {
+	paddr_t baseAddr;
+	bool inUse;
+	int ownNext;
+	int size; //number of frames
+};
+
+struct coremap *coremap;
+
+bool iscmapCreated = false;
+
+#endif //OPT_A3
+
 void
 vm_bootstrap(void)
 {
-	/* Do nothing. */
+#if OPT_A3
+	//add_lo and hi are physical addr
+	paddr_t addr_lo, addr_hi;
+
+	//Get the remaining available physical memory in sys
+	ram_getsize(&addr_lo, &addr_hi);
+
+	//Converts a physical address to a kernel virtual address.
+	coremap = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
+
+	//Update frame numbers
+	coremap->size = (addr_hi - addr_lo) / PAGE_SIZE;
+
+	//Calc size of coremap so far
+	addr_lo += sizeof(struct coremap) * coremap->size;
+
+
+#endif //OPT_A3
 }
 
 static
@@ -120,8 +154,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
-		/* We always create pages read-write, so we can't get this */
-		panic("dumbvm: got VM_FAULT_READONLY\n");
+#if OPT_A3
+				return EX_MOD
+#else
+				/* We always create pages read-write, so we can't get this */
+				panic("dumbvm: got VM_FAULT_READONLY\n");
+#endif
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -192,17 +230,29 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		if (elo & TLBLO_VALID) {
 			continue;
 		}
+
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+#if OPT_A3
+		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done) elo &= ~TLBLO_DIRTY;
+#endif //OPT_A3
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
-		return 0;
+		return 0; //TLB is not full
 	}
 
-	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
+	//Find TLB is Full
+#if OPT_A3
+	ehi = faultaddress;
+	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done) elo &= ~TLBLO_DIRTY; //Dity bit off
+	tlb_random(ehi, elo); //Pick a random entry to pop off
 	splx(spl);
+	return 0;
+#else
 	return EFAULT;
+#endif //OPT_A3
 }
 
 struct addrspace *
