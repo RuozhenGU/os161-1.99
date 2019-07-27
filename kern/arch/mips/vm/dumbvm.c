@@ -93,7 +93,7 @@ vm_bootstrap(void)
 	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
 	//Insert coremap in physical mem, find new base addr of available phsical addr
-	addr_lo += sizeof(struct core_map) * frameCount;
+	addr_lo += sizeof(struct coremap) * frameCount;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
@@ -196,7 +196,7 @@ free_kpages(vaddr_t addr)
 	}
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr = addr - MIPS_KSEG0;
-	for(int i = targetAddr; i < frameCount && core_map[i]->inUse != 1; i++){
+	for(int i = targetAddr; i < frameCount && core_map->inUse[i] != 1; i++){
 		core_map->inUse[i] = 0;
 		if(core_map[i]->containNext[i] != 1) break;
 		else core_map[i]->containNext[i] == 0;
