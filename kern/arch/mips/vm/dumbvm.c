@@ -66,24 +66,24 @@ getppages(unsigned long npages)
 	spinlock_acquire(&stealmem_lock);
 
 	addr = ram_stealmem(npages);
-	
+
 	spinlock_release(&stealmem_lock);
 	return addr;
 }
 
 /* Allocate/free some kernel-space virtual pages */
-vaddr_t 
+vaddr_t
 alloc_kpages(int npages)
 {
 	paddr_t pa;
-	pa = getppages(npages);
+	pa = getppages(npages); //what section of memory is available to handle
 	if (pa==0) {
 		return 0;
 	}
 	return PADDR_TO_KVADDR(pa);
 }
 
-void 
+void
 free_kpages(vaddr_t addr)
 {
 	/* nothing - leak the memory. */
@@ -264,7 +264,7 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
 {
-	size_t npages; 
+	size_t npages;
 
 	/* Align the region. First, the base... */
 	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
@@ -327,7 +327,7 @@ as_prepare_load(struct addrspace *as)
 	if (as->as_stackpbase == 0) {
 		return ENOMEM;
 	}
-	
+
 	as_zero_region(as->as_pbase1, as->as_npages1);
 	as_zero_region(as->as_pbase2, as->as_npages2);
 	as_zero_region(as->as_stackpbase, DUMBVM_STACKPAGES);
@@ -387,7 +387,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	memmove((void *)PADDR_TO_KVADDR(new->as_stackpbase),
 		(const void *)PADDR_TO_KVADDR(old->as_stackpbase),
 		DUMBVM_STACKPAGES*PAGE_SIZE);
-	
+
 	*ret = new;
 	return 0;
 }
