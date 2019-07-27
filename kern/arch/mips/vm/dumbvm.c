@@ -128,7 +128,6 @@ getppages(unsigned long npages)
 	if (iscmapCreated == false){
 		addr = ram_stealmem(npages);
 		kprintf("physical memory stealed without coremap!");
-
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
@@ -334,6 +333,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	splx(spl);
 	return 0;
 #else
+	splx(spl);
 	return EFAULT;
 #endif //OPT_A3
 }
