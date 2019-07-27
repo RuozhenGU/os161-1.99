@@ -162,7 +162,7 @@ getppages(unsigned long npages)
 		spinlock_release(&stealmem_lock);
 		return ENOMEM;
 	} //if coremap exist end
-#elseif
+#else
 	/* no core map case */
 	spinlock_acquire(&stealmem_lock);
 	addr = ram_stealmem(npages);
