@@ -237,9 +237,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
 #if OPT_A3
-		return EFAULT;
+				return EX_MOD;
 #else
-		panic("dumbvm: got VM_FAULT_READONLY\n");
+				/* We always create pages read-write, so we can't get this */
+				panic("dumbvm: got VM_FAULT_READONLY\n");
 #endif
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
@@ -311,34 +312,27 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		if (elo & TLBLO_VALID) {
 			continue;
 		}
+
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 #if OPT_A3
-		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1){
-			elo &= ~TLBLO_DIRTY;
-		}
-#endif
+		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1) elo &= ~TLBLO_DIRTY;
+#endif //OPT_A3
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
-		return 0;
+		return 0; //TLB is not full
 	}
-#if OPT_A3
+
+	//TLB is Full
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1){
-		elo &= ~TLBLO_DIRTY;
-	}
-	DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-	tlb_random(ehi, elo);
-	//kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
+#if OPT_A3
+	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1) elo &= ~TLBLO_DIRTY; //Dity bit off
+#endif //OPT_A3
+	tlb_random(faultaddress, elo); //Pick a random entry to pop off
 	splx(spl);
 	return 0;
-#else
-	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
-	splx(spl);
-	return EFAULT;
-#endif
 }
 
 struct addrspace *
@@ -349,8 +343,8 @@ as_create(void)
 		return NULL;
 	}
 #if OPT_A3
-	as->loadCode_done = false;
-#endif
+	as->loadCode_done = 0;
+#endif //OPT_A3
 	as->as_vbase1 = 0;
 	as->as_pbase1 = 0;
 	as->as_npages1 = 0;
