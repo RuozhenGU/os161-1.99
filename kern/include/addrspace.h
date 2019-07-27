@@ -55,9 +55,7 @@ struct addrspace {
   paddr_t as_pbase2;
   size_t as_npages2;
   paddr_t as_stackpbase;
-#if OPT_A3
   int loadCode_done; //is code section loaded? If not, do not mark text segment as readonly
-#endif //OPT_A3
 };
 
 /*
