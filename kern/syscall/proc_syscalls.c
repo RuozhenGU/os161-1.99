@@ -312,14 +312,17 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
 		strAddr[i] = stackptr;
 		result = copyoutstr(argv[i], (userptr_t)(stackptr), (sizeof(char) * (strlen(argv[i]) + 1)), NULL);
     //kfree(argv[i]);
-    if(result) /* free memory */ return result;
+    if(result) {
+      return result;
+    }
 	}
-
   /* make each of the upper part of stack point to the lower corresponding string */
   for (int i = argc; i >= 0; i--) {
     stackptr -= ROUNDUP(sizeof(vaddr_t), 4);
 		copyout(&strAddr[i], (userptr_t)(stackptr), ROUNDUP(sizeof(vaddr_t), 4));
-    if(result) /* free memory */ return result;
+    if(result) {
+      return result;
+    }
   }
 //}
   /* Delete old address space */

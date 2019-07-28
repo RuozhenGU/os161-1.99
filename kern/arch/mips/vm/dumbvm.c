@@ -65,52 +65,62 @@ struct coremap {
 
 struct coremap *core_map;
 
-int frameCount = 0;
-
 bool iscmapCreated = false;
 
 static struct spinlock spinlock_coremap;
+
+paddr_t addr_lo, addr_hi;
 
 #endif //OPT_A3
 
 void
 vm_bootstrap(void)
 {
-// #if OPT_A3
-// 	//add_lo and hi are physical addr
-// 	paddr_t addr_lo, addr_hi;
-//
-// 	//initialize spinlock for core_map
-// 	spinlock_init(&spinlock_coremap);
-//
-// 	//Get the remaining available physical memory in sys in case ram_stealmen ran before
-// 	ram_getsize(&addr_lo, &addr_hi);
-//
-// 	//Converts a physical address to a kernel virtual address.
-// 	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
-//
-// 	//Count frame numbers = size of array
-// 	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
-//
-// 	//Insert coremap in physical mem, find new base addr of available phsical addr
-// 	addr_lo += sizeof(struct coremap) * frameCount;
-//
-// 	//After insertion, if start physical addr does not align the start of one page/frame, update
-// 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
-//
-// 	core_map->baseAddr = addr_lo;
-//
-// 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
-//
-// 	for (int i = 0; i < frameCount; i++) {
-// 		core_map->inUse[i] = 0;
-// 		core_map->containNext[i] = 0;
-// 	}
-//
-// 	/* coremap is successfully built */
-// 	iscmapCreated = true;
-//
-// #endif //OPT_A3
+#if OPT_A3
+	//add_lo and hi are physical addr
+
+
+	//initialize spinlock for core_map
+	spinlock_init(&spinlock_coremap);
+
+	//Get the remaining available physical memory in sys in case ram_stealmen ran before
+	ram_getsize(&addr_lo, &addr_hi);
+	//Converts a physical address to a kernel virtual address.
+	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
+
+	//Count frame numbers = size of array
+	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
+
+	//Insert coremap in physical mem, find new base addr of available phsical addr
+	addr_lo += sizeof(struct coremap);
+	//init inuse array
+	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
+	//insert space
+	addr_lo += sizeof(int) * frameCount;
+	//init containnext array
+	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
+	//insert the space
+	addr_lo += sizeof(int) * frameCount;
+
+	//After insertion, if start physical addr does not align the start of one page/frame, update
+	while (addr_lo % PAGE_SIZE != 0) addr_lo++;
+
+
+	core_map->baseAddr = addr_lo;
+
+	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
+
+	kprintf("coremapSize and frameSize: %d %d\n", core_map->size, frameCount);
+
+	for (int i = 0; i < frameCount; i++) {
+		core_map->inUse[i] = 0;
+		core_map->containNext[i] = 0;
+	}
+
+	/* coremap is successfully built */
+	iscmapCreated = true;
+	kprintf("Bootstrap successful, mem range: %d - %d\n", addr_lo, addr_hi);
+#endif //OPT_A3
 }
 
 static
@@ -131,16 +141,18 @@ getppages(unsigned long npages)
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
-		for(int i = 0; i < frameCount; i++) {
+		KASSERT(core_map->size >= pageRequired);
+		for(int i = 0; i < core_map->size; i++) {
 			if (core_map->inUse[i] == 0) {
 				int sofar = i;
 				int count = 0;
 				/* check if the free mem is enough to use */
-				while(sofar < pageRequired && sofar < frameCount) {
-					if (core_map->inUse[i]) break; //ensure the mem loc is still available
+				while(count < pageRequired && sofar < core_map->size) {
+					if (core_map->inUse[sofar]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
-				if (! count >= pageRequired) {
+				if (count < pageRequired) {
+					i += count;
 					continue; /*not enough*/
 				} else {
 					/* update status of those found entries on physical mem */
@@ -150,10 +162,11 @@ getppages(unsigned long npages)
 						core_map->inUse[targetLoc] = 1;
 						if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
 						else core_map->containNext[targetLoc] = 0; //last element
-				}
-				addr = i * PAGE_SIZE; //beginning addr grabbed
-				spinlock_release(&stealmem_lock);
-				return addr + core_map->baseAddr;
+					}
+					addr = i * PAGE_SIZE + core_map->baseAddr; //beginning addr grabbed
+					spinlock_release(&stealmem_lock);
+					KASSERT(addr <= addr_hi && addr >= addr_lo);
+					return addr;
 				}
 			}
 			/* else case: continue until free mem is found */
@@ -189,17 +202,19 @@ void
 free_kpages(vaddr_t addr)
 {
 #if OPT_A3
+	(void) addr;
 	if (iscmapCreated == false) {
-		(void) addr;
+		kprintf("no coremap to free\n");
 		return;
 	}
 	spinlock_acquire(&spinlock_coremap);
-	int targetAddr = addr - MIPS_KSEG0;
-	for(int i = targetAddr; i < frameCount && core_map->inUse[i] != 1; i++){
+	int targetAddr =  addr - (core_map->baseAddr + MIPS_KSEG0);
+	targetAddr /= PAGE_SIZE;
+	int i;
+	for(i = targetAddr; i < core_map->size && core_map->containNext[i] == 1; i++){
 		core_map->inUse[i] = 0;
-		if (core_map->containNext[i] == 0) break;
-		else core_map->containNext[i] = 0;
 	}
+	if (i < core_map->size) core_map->inUse[i] = 0;
 	spinlock_release(&spinlock_coremap);
 #else
 	(void) addr;
@@ -229,7 +244,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
-
 	faultaddress &= PAGE_FRAME;
 
 	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
@@ -248,7 +262,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
-
 		return EINVAL;
 	}
 
@@ -258,7 +271,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
-
 		return EFAULT;
 	}
 
@@ -364,6 +376,7 @@ void
 as_destroy(struct addrspace *as)
 {
 #if OPT_A3
+	kprintf("call desotry\n");
 	free_kpages(PADDR_TO_KVADDR(as->as_pbase1));
 	free_kpages(PADDR_TO_KVADDR(as->as_pbase2));
 	free_kpages(PADDR_TO_KVADDR(as->as_stackpbase));
