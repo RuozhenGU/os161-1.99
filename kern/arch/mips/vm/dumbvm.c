@@ -79,7 +79,7 @@ vm_bootstrap(void)
 	paddr_t addr_lo, addr_hi;
 
 	//initialize spinlock for core_map
-	spinlock_init(&spinlock_coremap);
+	//spinlock_init(&spinlock_coremap);
 
 	//Get the remaining available physical memory in sys in case ram_stealmen ran before
 	ram_getsize(&addr_lo, &addr_hi);
