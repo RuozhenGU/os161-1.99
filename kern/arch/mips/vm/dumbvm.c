@@ -209,12 +209,12 @@ free_kpages(vaddr_t addr)
 	}
 	kprintf("freeKpage called\n");
 	spinlock_acquire(&spinlock_coremap);
-	int targetAddr = (addr - core_map->baseAddr) / PAGE_SIZE;
+	int targetAddr = addr - MIPS_KSEG0;
 	int i;
-	for(i = targetAddr; i < core_map->size && core_map->inUse[i] == 1 && core_map->containNext[i] == 1; i++){
+	for(i = targetAddr; i < core_map->size && core_map->containNext[i] == 1; i++){
 		core_map->inUse[i] = 0;
 	}
-	if (i != core_map->size) core_map->inUse[i] = 0;
+	if (i < core_map->size) core_map->inUse[i] = 0;
 	spinlock_release(&spinlock_coremap);
 #else
 	(void) addr;
