@@ -150,8 +150,9 @@ getppages(unsigned long npages)
 					if (core_map->inUse[sofar]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
-				kprintf("here1\n");
+				kprintf("here1 %d, %d\n", count, pageRequired);
 				if (count < pageRequired) {
+					i += count;
 					continue; /*not enough*/
 				} else {
 					/* update status of those found entries on physical mem */
@@ -161,12 +162,13 @@ getppages(unsigned long npages)
 						core_map->inUse[targetLoc] = 1;
 						if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
 						else core_map->containNext[targetLoc] = 0; //last element
+						kprintf("here3333\n");
 				}
-				kprintf("here3\n");
+				kprintf("here3 i is %d, %d\n", i, core_map->size);
 				addr = i * PAGE_SIZE + core_map->baseAddr; //beginning addr grabbed
 				kprintf("here4\n");
 				spinlock_release(&stealmem_lock);
-				kprintf("here5\n");
+				kprintf("%d\n", addr);
 				return addr;
 				}
 			}
