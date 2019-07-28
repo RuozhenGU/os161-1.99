@@ -110,7 +110,7 @@ vm_bootstrap(void)
 
 	/* coremap is successfully built */
 	iscmapCreated = true;
-	kprintf("Bootstrap successful")
+	kprintf("Bootstrap successful");
 #endif //OPT_A3
 }
 
