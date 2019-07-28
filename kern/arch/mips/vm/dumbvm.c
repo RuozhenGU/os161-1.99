@@ -173,7 +173,8 @@ getppages(unsigned long npages)
 				kprintf("here4\n");
 				spinlock_release(&stealmem_lock);
 				kprintf("%d\n", addr);
-				KASSERT(addr <= addr_hi && addr <= addr_lo);
+				kprintf(addr <= addr_hi);
+				kprintf(addr >= addr_lo);
 				return addr;
 				}
 			}
@@ -186,6 +187,7 @@ getppages(unsigned long npages)
 		return ENOMEM;
 	} //if coremap exist end
 #else
+	kprintf("not here\n");
 	/* no core map case */
 	spinlock_acquire(&stealmem_lock);
 	addr = ram_stealmem(npages);
