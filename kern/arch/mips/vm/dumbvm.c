@@ -315,7 +315,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
 #if OPT_A3
-		offset = faultaddress - vbase1;
+		int offset = faultaddress - vbase1;
 		paddr = (as->as_ptable1[offset / PAGE_SIZE]).frameNumber + offset % PAGE_SIZE;
 #else
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
@@ -323,7 +323,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
 #if OPT_A3
-		offset = faultaddress - vbase2;
+		int offset = faultaddress - vbase2;
 		paddr = (as->as_ptable2[offset / PAGE_SIZE]).frameNumber + offset % PAGE_SIZE;
 #else
 		paddr = (faultaddress - vbase2) + as->as_pbase2;
@@ -331,7 +331,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 	else if (faultaddress >= stackbase && faultaddress < stacktop) {
 #if OPT_A3
-		offset = faultaddress - stackbase;
+		int offset = faultaddress - stackbase;
 		paddr = (as->as_stackptable[offset / PAGE_SIZE]).frameNumber + offset % PAGE_SIZE;
 #else
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
@@ -417,7 +417,7 @@ as_destroy(struct addrspace *as)
 		free_kpages(PADDR_TO_KVADDR(as->as_ptable2[i].frameNumber));
 	}
 	for(int i = 0; i < DUMBVM_STACKPAGES; i++) {
-		free_kpages(PADDR_TO_KVADDR(as->as->as_stackptable[i].frameNumber));
+		free_kpages(PADDR_TO_KVADDR(as->as_stackptable[i].frameNumber));
 	}
 	kfree(as->as_stackptable);
 	kfree(as->as_ptable2);
@@ -520,24 +520,24 @@ as_prepare_load(struct addrspace *as)
 		return ENOMEM;
 	}
 	//pre-allocate frames for each page
-	for(int i = 0; i < as->as_npages1; i++) {
+	for(unsigned int i = 0; i < as->as_npages1; i++) {
 		/* allocate each frame one at a time */
 		as->as_ptable1[i].frameNumber = getppages(1);
-		if (as->as_ptable1[i].frameNumber == 0) returb ENOMEM;
+		if (as->as_ptable1[i].frameNumber == 0) return ENOMEM;
 		as_zero_region(as->as_ptable1[i].frameNumber, 1);
 	}
 
-	for(int i = 0; i < as->as_npages2; i++) {
+	for(unsigned int i = 0; i < as->as_npages2; i++) {
 		/* allocate each frame one at a time */
 		as->as_ptable2[i].frameNumber = getppages(1);
-		if (as->as_ptable2[i].frameNumber == 0) returb ENOMEM;
+		if (as->as_ptable2[i].frameNumber == 0) return ENOMEM;
 		as_zero_region(as->as_ptable2[i].frameNumber, 1);
 	}
 
-	for(int i = 0; i < DUMBVM_STACKPAGES; i++) {
+	for(unsigned int i = 0; i < DUMBVM_STACKPAGES; i++) {
 		/* allocate each frame one at a time */
 		as->as_stackptable[i].frameNumber = getppages(1);
-		if (as->as_stackptable[i].frameNumber == 0) returb ENOMEM;
+		if (as->as_stackptable[i].frameNumber == 0) return ENOMEM;
 		as_zero_region(as->as_stackptable[i].frameNumber, 1);
 	}
 
@@ -579,7 +579,11 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
+#if OPT_A3
+	(void)as;
+#else
 	KASSERT(as->as_stackpbase != 0);
+#endif //OPT_A3
 
 	*stackptr = USERSTACK;
 	return 0;
@@ -611,17 +615,17 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	}
 #if OPT_A3
 	KASSERT(new->as_ptable1 && new->as_ptable2 && new->as_stackptable);
-	for(int i = 0; i < old->as_npages1; i++) {
+	for(unsigned int i = 0; i < old->as_npages1; i++) {
 		memmove((void*)PADDR_TO_KVADDR(new->as_ptable1[i].frameNumber),
 						(const void*)PADDR_TO_KVADDR(old->as_ptable1[i].frameNumber), PAGE_SIZE);
 	}
 
-	for(int i = 0; i < old->as_npages2; i++) {
+	for(unsigned int i = 0; i < old->as_npages2; i++) {
 		memmove((void*)PADDR_TO_KVADDR(new->as_ptable2[i].frameNumber),
 						(const void*)PADDR_TO_KVADDR(old->as_ptable2[i].frameNumber), PAGE_SIZE);
 	}
 
-	for(int i = 0; i < DUMBVM_STACKPAGES; i++) {
+	for(int i = 0; i < (int)DUMBVM_STACKPAGES; i++) {
 		memmove((void*)PADDR_TO_KVADDR(new->as_stackptable[i].frameNumber),
 						(const void*)PADDR_TO_KVADDR(old->as_stackptable[i].frameNumber), PAGE_SIZE);
 	}
