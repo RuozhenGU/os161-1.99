@@ -94,7 +94,7 @@ vm_bootstrap(void)
 	addr_lo += sizeof(struct coremap) + sizeof(int) * frameCount * 2;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
-	if (addr_lo % PAGE_SIZE != 0) ((int)((paddr_lo/PAGE_SIZE) + 1))*PAGE_SIZE;
+	if (addr_lo % PAGE_SIZE != 0) ((int)((addr_lo/PAGE_SIZE) + 1))*PAGE_SIZE;
 
 
 	core_map->baseAddr = addr_lo;
