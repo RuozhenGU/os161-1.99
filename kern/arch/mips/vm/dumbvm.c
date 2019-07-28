@@ -146,7 +146,7 @@ getppages(unsigned long npages)
 				int count = 0;
 				/* check if the free mem is enough to use */
 				while(sofar < pageRequired && sofar < core_map->size) {
-					if (core_map->inUse[i]) break; //ensure the mem loc is still available
+					if (core_map->inUse[sofar]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
 				if (! count >= pageRequired) {
