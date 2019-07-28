@@ -267,7 +267,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 */
 		return EFAULT;
 	}
-
+	kprintf("i am here");
 	/* Assert that the address space has been set up properly. */
 	KASSERT(as->as_vbase1 != 0);
 	KASSERT(as->as_pbase1 != 0);
@@ -299,6 +299,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
 	}
 	else {
+		kprintf("weird error");
 		return EFAULT;
 	}
 
@@ -322,11 +323,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
+		kprintf("TLB not full");
 		return 0; //TLB is not full
 	}
 
 	//TLB is Full
-	kprintf("TLB MISS");
+	kprintf("TLB MISS2");
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 #if OPT_A3
