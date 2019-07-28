@@ -74,7 +74,6 @@ struct addrspace {
 #if OPT_A3
   struct page_table {
     paddr_t frameNumber;
-
   };
 #endif //OPT_A3
 
