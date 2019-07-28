@@ -90,7 +90,7 @@ vm_bootstrap(void)
 	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
 	//Insert coremap in physical mem, find new base addr of available phsical addr
-	addr_lo += sizeof(struct coremap)
+	addr_lo += sizeof(struct coremap);
 	//init inuse array
 	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
 	//insert space
