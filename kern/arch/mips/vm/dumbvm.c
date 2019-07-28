@@ -104,7 +104,7 @@ vm_bootstrap(void)
 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
 
 
-	core_map->baseAddr = addr_lo;
+	core_map->baseAddr = addr_lo + 1;
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
