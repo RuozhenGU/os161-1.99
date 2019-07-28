@@ -93,11 +93,13 @@ vm_bootstrap(void)
 	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
 	//Insert coremap in physical mem, find new base addr of available phsical addr
-	addr_lo += sizeof(struct coremap) * frameCount + sizeof(int*) * frameCount * 2;
+	addr_lo += sizeof(struct coremap) + sizeof(int) * frameCount * 2;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
+
 	kprintf("loc adjed");
+
 	core_map->baseAddr = addr_lo;
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
