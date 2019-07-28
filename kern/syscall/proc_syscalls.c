@@ -336,7 +336,6 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
 
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
-  kfree(addr_name);
 	return EINVAL;
 }
 
