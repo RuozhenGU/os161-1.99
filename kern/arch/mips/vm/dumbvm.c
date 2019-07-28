@@ -117,7 +117,7 @@ vm_bootstrap(void)
 
 	/* coremap is successfully built */
 	iscmapCreated = true;
-	kprintf("Bootstrap successful\n");
+	kprintf("Bootstrap successful, mem range: %d - %d\n", addr_lo, addr_hi);
 #endif //OPT_A3
 }
 
