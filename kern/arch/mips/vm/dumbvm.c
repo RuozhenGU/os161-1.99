@@ -152,7 +152,6 @@ getppages(unsigned long npages)
 					if (core_map->inUse[sofar]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
-				kprintf("here1 %d, %d\n", count, pageRequired);
 				if (count < pageRequired) {
 					i += count;
 					continue; /*not enough*/
@@ -164,18 +163,13 @@ getppages(unsigned long npages)
 						core_map->inUse[targetLoc] = 1;
 						if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
 						else core_map->containNext[targetLoc] = 0; //last element
-						kprintf("here3333\n");
 					}
-					kprintf("here3 i is %d, %d\n", i, core_map->size);
 					addr = i * PAGE_SIZE + core_map->baseAddr; //beginning addr grabbed
-					kprintf("here4\n");
 					spinlock_release(&stealmem_lock);
-					kprintf("%d\n", addr);
 					KASSERT(addr <= addr_hi && addr >= addr_lo);
 					return addr;
 				}
 			}
-			kprintf("here2\n");
 			/* else case: continue until free mem is found */
 		} //for loop end
 		/* memory error */
@@ -184,7 +178,6 @@ getppages(unsigned long npages)
 		return ENOMEM;
 	} //if coremap exist end
 #else
-	kprintf("not here\n");
 	/* no core map case */
 	spinlock_acquire(&stealmem_lock);
 	addr = ram_stealmem(npages);
@@ -252,7 +245,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
-	kprintf("call vmfault\n");
 	faultaddress &= PAGE_FRAME;
 
 	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
@@ -261,11 +253,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	    case VM_FAULT_READONLY:
 #if OPT_A3
-				kprintf("erro4\n");
 				return EX_MOD;
 #else
 				/* We always create pages read-write, so we can't get this */
-				kprintf("erro3\n");
 				panic("dumbvm: got VM_FAULT_READONLY\n");
 #endif
 
@@ -273,7 +263,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
-		kprintf("erro2\n");
 		return EINVAL;
 	}
 
@@ -283,7 +272,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
-		kprintf("erro1\n");
 		return EFAULT;
 	}
 
@@ -327,7 +315,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
 	}
 	else {
-		kprintf("erro1\n");
 		return EFAULT;
 	}
 
