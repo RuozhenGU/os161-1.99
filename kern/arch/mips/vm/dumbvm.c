@@ -223,7 +223,6 @@ vm_tlbshootdown(const struct tlbshootdown *ts)
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
-	kprintf("in vmfault");
 	vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
 	paddr_t paddr;
 	int i;
@@ -276,7 +275,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 		return EFAULT;
 	}
-	kprintf("i am here");
 	/* Assert that the address space has been set up properly. */
 	KASSERT(as->as_vbase1 != 0);
 	KASSERT(as->as_pbase1 != 0);
@@ -332,7 +330,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
-		kprintf("TLB not full");
 		return 0; //TLB is not full
 	}
 
