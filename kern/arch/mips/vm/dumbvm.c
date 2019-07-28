@@ -238,7 +238,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	    case VM_FAULT_READONLY:
 #if OPT_A3
-				kprintf("erroe1");
 				return EX_MOD;
 #else
 				/* We always create pages read-write, so we can't get this */
@@ -249,7 +248,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
-		kprintf("error2");
 
 		return EINVAL;
 	}
@@ -260,7 +258,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
-		kprintf("erroe4");
 
 		return EFAULT;
 	}
@@ -271,7 +268,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * No address space set up. This is probably also a
 		 * kernel fault early in boot.
 		 */
-		kprintf("erroe3");
 
 		return EFAULT;
 	}
@@ -306,7 +302,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
 	}
 	else {
-		kprintf("weird error");
 		return EFAULT;
 	}
 
@@ -334,7 +329,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 	//TLB is Full
-	kprintf("TLB MISS2");
 	ehi = faultaddress;
 	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 #if OPT_A3
