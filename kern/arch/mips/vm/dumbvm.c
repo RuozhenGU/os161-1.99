@@ -197,7 +197,7 @@ void
 free_kpages(vaddr_t addr)
 {
 #if OPT_A3
-	if (iscmapCreated == false) {
+	if (iscmapCreated == true) {
 		(void) addr;
 		kprintf("no coremap to free\n");
 		return;
