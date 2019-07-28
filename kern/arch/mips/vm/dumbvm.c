@@ -214,7 +214,7 @@ free_kpages(vaddr_t addr)
 	for(i = targetAddr; i < core_map->size && core_map->inUse[i] == 1 && core_map->containNext[i] == 1; i++){
 		core_map->inUse[i] = 0;
 	}
-	core_map->inUse[i] = 0;
+	if (i != coremap->size) core_map->inUse[i] = 0;
 	spinlock_release(&spinlock_coremap);
 #else
 	(void) addr;
