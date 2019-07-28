@@ -207,11 +207,9 @@ free_kpages(vaddr_t addr)
 		kprintf("no coremap to free\n");
 		return;
 	}
-	kprintf("freeKpage called\n");
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr =  addr - (core_map->baseAddr + MIPS_KSEG0);
 	targetAddr /= PAGE_SIZE;
-	kprintf("targetAddr: %d\n", targetAddr);
 	int i;
 	for(i = targetAddr; i < core_map->size && core_map->containNext[i] == 1; i++){
 		core_map->inUse[i] = 0;
