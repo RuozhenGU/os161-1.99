@@ -83,12 +83,10 @@ vm_bootstrap(void)
 
 	//Get the remaining available physical memory in sys in case ram_stealmen ran before
 	ram_getsize(&addr_lo, &addr_hi);
-	kprintf("ram_size success");
 	//Converts a physical address to a kernel virtual address.
 	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
 	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
 	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
-	kprintf("coremap initialized");
 	//Count frame numbers = size of array
 	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
@@ -96,16 +94,15 @@ vm_bootstrap(void)
 	addr_lo += sizeof(struct coremap) + sizeof(int) * frameCount * 2;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
-	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
+	if (addr_lo % PAGE_SIZE != 0) ((int)((paddr_lo/PAGE_SIZE) + 1))*PAGE_SIZE;
 
-	kprintf("loc adjed");
 
 	core_map->baseAddr = addr_lo;
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
-	kprintf("ready for loop");
-	for (int i = 0; i < core_map->size; i++) {
+	kprintf("ready for loop: %s %s\n", core_map->size, frameCount);
+	for (int i = 0; i < frameCount; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
 	}
