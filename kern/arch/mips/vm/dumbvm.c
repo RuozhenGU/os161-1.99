@@ -246,7 +246,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
-
+	kprintf("call vmfault\n");
 	faultaddress &= PAGE_FRAME;
 
 	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
@@ -384,6 +384,7 @@ void
 as_destroy(struct addrspace *as)
 {
 #if OPT_A3
+	kprintf("call desotry\n");
 	free_kpages(PADDR_TO_KVADDR(as->as_pbase1));
 	free_kpages(PADDR_TO_KVADDR(as->as_pbase2));
 	free_kpages(PADDR_TO_KVADDR(as->as_stackpbase));
