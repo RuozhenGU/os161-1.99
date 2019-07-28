@@ -6,6 +6,7 @@ _Adding features to a Harvard's Ooperating System (os161) Kernel_
 
 [working with OS161](https://github.com/liyifeng94/os161)
 
+---
 #### Highlights:
 
 1. Implement **Synchronization Primitives** including lock, semaphor and condition variables.
@@ -14,5 +15,4 @@ _Adding features to a Harvard's Ooperating System (os161) Kernel_
 4. Improved **scheduling and file system** for OS161
 
 ---
-### Achieve 100/100 for all assignments by meeting efficiency and accuracy requirements for course CS350 at University of Waterloo.
----
+#### _Achieve 100/100 for all assignments by meeting efficiency and accuracy requirements for course CS350 at University of Waterloo._
