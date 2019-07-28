@@ -63,7 +63,7 @@ struct addrspace {
   struct page_table * as_ptable1; //code
   struct page_table * as_ptable2; //data
   struct page_table * as_stackptable; //stack
-#else　
+#else
   //physical addr
   paddr_t as_pbase1;
   paddr_t as_pbase2;
