@@ -142,7 +142,6 @@ getppages(unsigned long npages)
 		return addr;
 	} else /* core map exists */ {
 		KASSERT(core_map->size >= pageRequired);
-		kprintf("getpage got called!\n");
 		for(int i = 0; i < core_map->size; i++) {
 			if (core_map->inUse[i] == 0) {
 				int sofar = i;
@@ -208,9 +207,10 @@ free_kpages(vaddr_t addr)
 		kprintf("no coremap to free\n");
 		return;
 	}
+	kprintf("freeKpage called\n");
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr = addr - MIPS_KSEG0;
-	for(int i = targetAddr; i < core_map->size  && core_map->inUse[i] != 1; i++){
+	for(int i = targetAddr; i < core_map->size && core_map->inUse[i] == 1; i++){
 		core_map->inUse[i] = 0;
 		if (core_map->containNext[i] == 0) break;
 		else core_map->containNext[i] = 0;
