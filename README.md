@@ -15,4 +15,4 @@
 4. Improved **scheduling and file system** for OS161
 
 ---
-_Achieve **100/100 for all assignments by meeting efficiency and accuracy requirements** for course CS350 at University of Waterloo._
+_Achieve **105/100 (bonus) for all assignments by meeting efficiency and accuracy requirements** for course CS350 at University of Waterloo._
