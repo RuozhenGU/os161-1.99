@@ -40,7 +40,13 @@
 #include <mainbus.h>
 #include <syscall.h>
 #include "opt-A2.h"
-
+#include "opt-A3.h"
+#include <proc.h>
+#include <addrspace.h>
+#include <kern/wait.h>
+#include <copyinout.h>
+#include <vfs.h>
+#include <kern/fcntl.h>
 
 
 /* in exception.S */
@@ -110,13 +116,55 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 		break;
 	}
 
-	/*
-	 * You will probably want to change this.
-	 */
+#if OPT_A3
+	(void)epc;
+	(void)vaddr;
+	sys__exit(sig);
+	// 	if (sig == EX_MOD) {
+	// 	(void)epc;
+	// 	(void)vaddr;
+	//
+	// 	/* copy sys_exit() */
+	// 	struct addrspace *as;
+	// 	struct proc *p = curproc;
+	//
+	// 	DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n", sig);
+	//
+	// 	KASSERT(curproc->p_addrspace != NULL);
+	// 	lock_acquire(lk_tb);
+	//
+	// 	curproc->isAlive = false;
+	// 	curproc->code = sig;
+	// 	curproc->status = _MKWAIT_EXIT(sig);
+	//
+	// 	exitTable[curproc->pid - 2] = sig;
+	// 	aliveTable[curproc->pid - 2] = false;
+	//
+	// 	cv_broadcast(curproc->cv_child, lk_tb);
+	//
+	// 	lock_release(lk_tb);
+	//
+	// 	as_deactivate();
+	// 	as = curproc_setas(NULL);
+	//   as_destroy(as);
+	// 	proc_remthread(curthread);
+	//
+	//   /* if this is the last user process in the system, proc_destroy()
+	//      will wake up the kernel menu thread */
+	//   proc_destroy(p);
+	//
+	//   thread_exit();
+	//   /* thread_exit() does not return, so we should never get here */
+	//   panic("return from thread_exit in sys_exit\n");
+	// }
+
+
+#else
 
 	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
 		code, sig, trapcodenames[code], epc, vaddr);
 	panic("I don't know how to handle this\n");
+#endif //OPT_A3
 }
 
 /*

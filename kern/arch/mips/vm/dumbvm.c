@@ -37,6 +37,9 @@
 #include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
+#include "opt-A3.h"
+#include <mips/trapframe.h>
+
 
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
@@ -51,44 +54,157 @@
  */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
+
+#if OPT_A3
+struct coremap {
+	paddr_t baseAddr; // != base of physical mem
+	int * inUse; //Array
+	int * containNext; //Array
+	int size; //number of available frames/Size of arrays
+};
+
+struct coremap *core_map;
+
+int frameCount = 0;
+
+bool iscmapCreated = false;
+
+static struct spinlock spinlock_coremap;
+
+#endif //OPT_A3
+
 void
 vm_bootstrap(void)
 {
-	/* Do nothing. */
+// #if OPT_A3
+// 	//add_lo and hi are physical addr
+// 	paddr_t addr_lo, addr_hi;
+//
+// 	//initialize spinlock for core_map
+// 	spinlock_init(&spinlock_coremap);
+//
+// 	//Get the remaining available physical memory in sys in case ram_stealmen ran before
+// 	ram_getsize(&addr_lo, &addr_hi);
+//
+// 	//Converts a physical address to a kernel virtual address.
+// 	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
+//
+// 	//Count frame numbers = size of array
+// 	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
+//
+// 	//Insert coremap in physical mem, find new base addr of available phsical addr
+// 	addr_lo += sizeof(struct coremap) * frameCount;
+//
+// 	//After insertion, if start physical addr does not align the start of one page/frame, update
+// 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
+//
+// 	core_map->baseAddr = addr_lo;
+//
+// 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
+//
+// 	for (int i = 0; i < frameCount; i++) {
+// 		core_map->inUse[i] = 0;
+// 		core_map->containNext[i] = 0;
+// 	}
+//
+// 	/* coremap is successfully built */
+// 	iscmapCreated = true;
+//
+// #endif //OPT_A3
 }
 
 static
 paddr_t
 getppages(unsigned long npages)
 {
+#if OPT_A3
+
+	int pageRequired = (int) npages;
+
 	paddr_t addr;
 
 	spinlock_acquire(&stealmem_lock);
 
+	if (iscmapCreated == false){
+		addr = ram_stealmem(npages);
+		kprintf("physical memory stealed!");
+		spinlock_release(&stealmem_lock);
+		return addr;
+	} else /* core map exists */ {
+		for(int i = 0; i < frameCount; i++) {
+			if (core_map->inUse[i] == 0) {
+				int sofar = i;
+				int count = 0;
+				/* check if the free mem is enough to use */
+				while(sofar < pageRequired && sofar < frameCount) {
+					if (core_map->inUse[i]) break; //ensure the mem loc is still available
+					count++; sofar++;
+				}
+				if (! count >= pageRequired) {
+					continue; /*not enough*/
+				} else {
+					/* update status of those found entries on physical mem */
+					for (int j = 0; j < pageRequired; j++) {
+						const int targetLoc = i + j;
+						/* update core map*/
+						core_map->inUse[targetLoc] = 1;
+						if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
+						else core_map->containNext[targetLoc] = 0; //last element
+				}
+				addr = i * PAGE_SIZE; //beginning addr grabbed
+				spinlock_release(&stealmem_lock);
+				return addr + core_map->baseAddr;
+				}
+			}
+			/* else case: continue until free mem is found */
+		} //for loop end
+		/* memory error */
+		kprintf("Error! Available physical memory is not enough! Try to free some before acquiring.\n");
+		spinlock_release(&stealmem_lock);
+		return ENOMEM;
+	} //if coremap exist end
+#else
+	/* no core map case */
+	spinlock_acquire(&stealmem_lock);
 	addr = ram_stealmem(npages);
-	
 	spinlock_release(&stealmem_lock);
 	return addr;
+
+#endif //OPT_A3
 }
 
 /* Allocate/free some kernel-space virtual pages */
-vaddr_t 
+vaddr_t
 alloc_kpages(int npages)
 {
 	paddr_t pa;
-	pa = getppages(npages);
+	pa = getppages(npages); //what section of memory is available to handle
 	if (pa==0) {
 		return 0;
 	}
 	return PADDR_TO_KVADDR(pa);
 }
 
-void 
+void
 free_kpages(vaddr_t addr)
 {
-	/* nothing - leak the memory. */
-
-	(void)addr;
+#if OPT_A3
+	if (iscmapCreated == false) {
+		(void) addr;
+		return;
+	}
+	spinlock_acquire(&spinlock_coremap);
+	int targetAddr = addr - MIPS_KSEG0;
+	for(int i = targetAddr; i < frameCount && core_map->inUse[i] != 1; i++){
+		core_map->inUse[i] = 0;
+		if (core_map->containNext[i] == 0) break;
+		else core_map->containNext[i] = 0;
+	}
+	spinlock_release(&spinlock_coremap);
+#else
+	(void) addr;
+	return;
+#endif //OPT_A3
 }
 
 void
@@ -119,13 +235,20 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
 
 	switch (faulttype) {
+
 	    case VM_FAULT_READONLY:
-		/* We always create pages read-write, so we can't get this */
-		panic("dumbvm: got VM_FAULT_READONLY\n");
+#if OPT_A3
+				return EX_MOD;
+#else
+				/* We always create pages read-write, so we can't get this */
+				panic("dumbvm: got VM_FAULT_READONLY\n");
+#endif
+
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
+
 		return EINVAL;
 	}
 
@@ -135,6 +258,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
+
 		return EFAULT;
 	}
 
@@ -144,9 +268,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * No address space set up. This is probably also a
 		 * kernel fault early in boot.
 		 */
+
 		return EFAULT;
 	}
-
 	/* Assert that the address space has been set up properly. */
 	KASSERT(as->as_vbase1 != 0);
 	KASSERT(as->as_pbase1 != 0);
@@ -192,17 +316,27 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		if (elo & TLBLO_VALID) {
 			continue;
 		}
+
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+#if OPT_A3
+		if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1) elo &= ~TLBLO_DIRTY;
+#endif //OPT_A3
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
-		return 0;
+		return 0; //TLB is not full
 	}
 
-	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
+	//TLB is Full
+	ehi = faultaddress;
+	elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+#if OPT_A3
+	if(faultaddress < vtop1 && faultaddress >= vbase1 && as->loadCode_done == 1) elo &= ~TLBLO_DIRTY; //Dity bit off
+#endif //OPT_A3
+	tlb_random(faultaddress, elo); //Pick a random entry to pop off
 	splx(spl);
-	return EFAULT;
+	return 0;
 }
 
 struct addrspace *
@@ -212,7 +346,9 @@ as_create(void)
 	if (as==NULL) {
 		return NULL;
 	}
-
+#if OPT_A3
+	as->loadCode_done = 0;
+#endif //OPT_A3
 	as->as_vbase1 = 0;
 	as->as_pbase1 = 0;
 	as->as_npages1 = 0;
@@ -227,6 +363,11 @@ as_create(void)
 void
 as_destroy(struct addrspace *as)
 {
+#if OPT_A3
+	free_kpages(PADDR_TO_KVADDR(as->as_pbase1));
+	free_kpages(PADDR_TO_KVADDR(as->as_pbase2));
+	free_kpages(PADDR_TO_KVADDR(as->as_stackpbase));
+#endif //OPT_A3
 	kfree(as);
 }
 
@@ -264,7 +405,7 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
 {
-	size_t npages; 
+	size_t npages;
 
 	/* Align the region. First, the base... */
 	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
@@ -327,7 +468,7 @@ as_prepare_load(struct addrspace *as)
 	if (as->as_stackpbase == 0) {
 		return ENOMEM;
 	}
-	
+
 	as_zero_region(as->as_pbase1, as->as_npages1);
 	as_zero_region(as->as_pbase2, as->as_npages2);
 	as_zero_region(as->as_stackpbase, DUMBVM_STACKPAGES);
@@ -335,6 +476,7 @@ as_prepare_load(struct addrspace *as)
 	return 0;
 }
 
+//tlb entry = invalid
 int
 as_complete_load(struct addrspace *as)
 {
@@ -387,7 +529,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	memmove((void *)PADDR_TO_KVADDR(new->as_stackpbase),
 		(const void *)PADDR_TO_KVADDR(old->as_stackpbase),
 		DUMBVM_STACKPAGES*PAGE_SIZE);
-	
+
 	*ret = new;
 	return 0;
 }
