@@ -166,16 +166,15 @@ getppages(unsigned long npages)
 						//if (j != pageRequired - 1) core_map->containNext[targetLoc] = 1;
 						//else core_map->containNext[targetLoc] = 0; //last element
 						kprintf("here3333\n");
-				}
-				core_map->containNext[i+pageRequired-1] = 0;
-				kprintf("here3 i is %d, %d\n", i, core_map->size);
-				addr = i * PAGE_SIZE + core_map->baseAddr; //beginning addr grabbed
-				kprintf("here4\n");
-				spinlock_release(&stealmem_lock);
-				kprintf("%d\n", addr);
-				kprintf("%d", (int)addr <= (int)addr_hi);
-				kprintf("%d", (int)addr >= (int)addr_lo);
-				return addr;
+					}
+					core_map->containNext[i+pageRequired-1] = 0;
+					kprintf("here3 i is %d, %d\n", i, core_map->size);
+					addr = i * PAGE_SIZE + core_map->baseAddr; //beginning addr grabbed
+					kprintf("here4\n");
+					spinlock_release(&stealmem_lock);
+					kprintf("%d\n", addr);
+					KASSERT(addr <= addr_hi && addr <= addr_lo);
+					return addr;
 				}
 			}
 			kprintf("here2\n");
