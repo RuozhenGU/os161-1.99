@@ -110,7 +110,7 @@ vm_bootstrap(void)
 
 	kprintf("coremapSize and frameSize: %d %d\n", core_map->size, frameCount);
 
-	for (int i = 0; i < core_map->size; i++) {
+	for (int i = 0; i < frameCount; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
 	}
@@ -139,6 +139,7 @@ getppages(unsigned long npages)
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
+		kprintf("getpage got called!\n");
 		for(int i = 0; i < core_map->size; i++) {
 			if (core_map->inUse[i] == 0) {
 				int sofar = i;
@@ -197,11 +198,12 @@ void
 free_kpages(vaddr_t addr)
 {
 #if OPT_A3
-	if (iscmapCreated == true) {
+	if (iscmapCreated == false) {
 		(void) addr;
 		kprintf("no coremap to free\n");
 		return;
 	}
+	kprintf("call free\n");
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr = addr - MIPS_KSEG0;
 	for(int i = targetAddr; i < core_map->size  && core_map->inUse[i] != 1; i++){
@@ -313,7 +315,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
 	}
 	else {
-		kprintf("erro5\n");
+		kprintf("erro1\n");
 		return EFAULT;
 	}
 
