@@ -173,8 +173,8 @@ getppages(unsigned long npages)
 				kprintf("here4\n");
 				spinlock_release(&stealmem_lock);
 				kprintf("%d\n", addr);
-				kprintf(addr <= (int)addr_hi);
-				kprintf(addr >= (int)addr_lo);
+				kprintf("%d", addr <= (int)addr_hi);
+				kprintf("%d", addr >= (int)addr_lo);
 				return addr;
 				}
 			}
