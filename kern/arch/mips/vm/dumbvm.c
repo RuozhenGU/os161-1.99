@@ -85,16 +85,23 @@ vm_bootstrap(void)
 	ram_getsize(&addr_lo, &addr_hi);
 	//Converts a physical address to a kernel virtual address.
 	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
-	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
-	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
+
 	//Count frame numbers = size of array
 	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
 	//Insert coremap in physical mem, find new base addr of available phsical addr
-	addr_lo += sizeof(struct coremap) + sizeof(int) * frameCount * 2;
+	addr_lo += sizeof(struct coremap)
+	//init inuse array
+	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
+	//insert space
+	addr_lo += sizeof(int) * frameCount;
+	//init containnext array
+	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
+	//insert the space
+	addr_lo += sizeof(int) * frameCount;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
-	if (addr_lo % PAGE_SIZE != 0) addr_lo = ((int)((addr_lo/PAGE_SIZE) + 1))*PAGE_SIZE;
+	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
 
 
 	core_map->baseAddr = addr_lo;
@@ -102,7 +109,7 @@ vm_bootstrap(void)
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
 	kprintf("ready for loop: %d %d\n", core_map->size, frameCount);
-	for (int i = 0; i < frameCount; i++) {
+	for (int i = 0; i < core_map->size; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
 	}
