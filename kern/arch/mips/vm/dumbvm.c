@@ -65,8 +65,6 @@ struct coremap {
 
 struct coremap *core_map;
 
-int frameCount = 0;
-
 bool iscmapCreated = false;
 
 static struct spinlock spinlock_coremap;
@@ -92,10 +90,10 @@ vm_bootstrap(void)
 	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
 
 	//Count frame numbers = size of array
-	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
+	int frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
 
 	//Insert coremap in physical mem, find new base addr of available phsical addr
-	addr_lo += sizeof(struct coremap) * frameCount + sizeof(int) * frameCount * 2; 
+	addr_lo += sizeof(struct coremap) * frameCount + sizeof(int) * frameCount * 2;
 
 	//After insertion, if start physical addr does not align the start of one page/frame, update
 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
@@ -104,7 +102,8 @@ vm_bootstrap(void)
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
-	for (int i = 0; i < frameCount; i++) {
+
+	for (int i = 0; i < core_map->size; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
 	}
@@ -133,12 +132,12 @@ getppages(unsigned long npages)
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
-		for(int i = 0; i < frameCount; i++) {
+		for(int i = 0; i < core_map->size; i++) {
 			if (core_map->inUse[i] == 0) {
 				int sofar = i;
 				int count = 0;
 				/* check if the free mem is enough to use */
-				while(sofar < pageRequired && sofar < frameCount) {
+				while(sofar < pageRequired && sofar < core_map->size) {
 					if (core_map->inUse[i]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
@@ -197,7 +196,7 @@ free_kpages(vaddr_t addr)
 	}
 	spinlock_acquire(&spinlock_coremap);
 	int targetAddr = addr - MIPS_KSEG0;
-	for(int i = targetAddr; i < frameCount && core_map->inUse[i] != 1; i++){
+	for(int i = targetAddr; i < core_map->size  && core_map->inUse[i] != 1; i++){
 		core_map->inUse[i] = 0;
 		if (core_map->containNext[i] == 0) break;
 		else core_map->containNext[i] = 0;
