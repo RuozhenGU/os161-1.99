@@ -108,7 +108,8 @@ vm_bootstrap(void)
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
-	kprintf("ready for loop: %d %d\n", core_map->size, frameCount);
+	//kprintf("coremapSize and frameSize: %d %d\n", core_map->size, frameCount);
+
 	for (int i = 0; i < core_map->size; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
@@ -116,7 +117,7 @@ vm_bootstrap(void)
 
 	/* coremap is successfully built */
 	iscmapCreated = true;
-	kprintf("Bootstrap successful");
+	kprintf("Bootstrap successful\n");
 #endif //OPT_A3
 }
 
@@ -198,6 +199,7 @@ free_kpages(vaddr_t addr)
 #if OPT_A3
 	if (iscmapCreated == false) {
 		(void) addr;
+		kprintf("no coremap to free\n");
 		return;
 	}
 	spinlock_acquire(&spinlock_coremap);
@@ -265,7 +267,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
-
+		kprintf("EFAULT ERROR in vm_fault \n");
 		return EFAULT;
 	}
 
