@@ -109,6 +109,7 @@ runprogram(char *progname, int argc, char *argv[])
 		kfree(argv[i]);
 		if(result) /* free memory */ return result;
 	}
+	kfree(argv);
 
 	/* make each of the upper part of stack point to the lower corresponding string */
 	for (int i = argc; i >= 0; i--) {
