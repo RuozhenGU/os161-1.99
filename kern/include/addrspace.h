@@ -36,9 +36,15 @@
 
 
 #include <vm.h>
+#include "opt_A3.h"
 
 struct vnode;
 
+#if OPT_A3
+
+struct page_table;
+
+#endif //OPT_A3
 
 /*
  * Address space - data structure associated with the virtual memory
@@ -49,14 +55,28 @@ struct vnode;
 
 struct addrspace {
   vaddr_t as_vbase1;
-  paddr_t as_pbase1;
-  size_t as_npages1;
   vaddr_t as_vbase2;
-  paddr_t as_pbase2;
-  size_t as_npages2;
-  paddr_t as_stackpbase;
+  size_t as_npages1; //size of code segment
+  size_t as_npages2; //size of data segment
   int loadCode_done; //is code section loaded? If not, do not mark text segment as readonly
+#if OPT_A3
+  struct page_table * as_ptable1; //code
+  struct page_table * as_ptable2; //data
+  struct page_table * as_stackptable; //stack
+#else　
+  //physical addr
+  paddr_t as_pbase1;
+  paddr_t as_pbase2;
+  paddr_t as_stackpbase;
+#endif //OPT_A3
 };
+
+#if OPT_A3
+  struct page_table {
+    paddr_t frameNumber;
+
+  };
+#endif //OPT_A3
 
 /*
  * Functions in addrspace.c:
