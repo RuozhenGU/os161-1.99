@@ -127,7 +127,7 @@ getppages(unsigned long npages)
 
 	if (iscmapCreated == false){
 		addr = ram_stealmem(npages);
-		//kprintf("physical memory stealed!");
+		kprintf("physical memory stealed!");
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
@@ -223,6 +223,7 @@ vm_tlbshootdown(const struct tlbshootdown *ts)
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
+	kprintf("i am in vmfault");
 	vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
 	paddr_t paddr;
 	int i;
