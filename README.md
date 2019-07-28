@@ -14,4 +14,4 @@ _Adding features to a Harvard's Ooperating System (os161) Kernel_
 4. Improved **scheduling and file system** for OS161
 
 
-####Achieve <font color="red">100/100 for all assignments by meeting efficiency and accuracy requirements</font> for course CS350 at University of Waterloo.
+#### Achieve <font color="red">100/100 for all assignments by meeting efficiency and accuracy requirements</font> for course CS350 at University of Waterloo.
