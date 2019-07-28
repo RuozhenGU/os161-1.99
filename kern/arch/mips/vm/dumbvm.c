@@ -76,41 +76,43 @@ static struct spinlock spinlock_coremap;
 void
 vm_bootstrap(void)
 {
-// #if OPT_A3
-// 	//add_lo and hi are physical addr
-// 	paddr_t addr_lo, addr_hi;
-//
-// 	//initialize spinlock for core_map
-// 	spinlock_init(&spinlock_coremap);
-//
-// 	//Get the remaining available physical memory in sys in case ram_stealmen ran before
-// 	ram_getsize(&addr_lo, &addr_hi);
-//
-// 	//Converts a physical address to a kernel virtual address.
-// 	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
-//
-// 	//Count frame numbers = size of array
-// 	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
-//
-// 	//Insert coremap in physical mem, find new base addr of available phsical addr
-// 	addr_lo += sizeof(struct coremap) * frameCount;
-//
-// 	//After insertion, if start physical addr does not align the start of one page/frame, update
-// 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
-//
-// 	core_map->baseAddr = addr_lo;
-//
-// 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
-//
-// 	for (int i = 0; i < frameCount; i++) {
-// 		core_map->inUse[i] = 0;
-// 		core_map->containNext[i] = 0;
-// 	}
-//
-// 	/* coremap is successfully built */
-// 	iscmapCreated = true;
-//
-// #endif //OPT_A3
+#if OPT_A3
+	//add_lo and hi are physical addr
+	paddr_t addr_lo, addr_hi;
+
+	//initialize spinlock for core_map
+	spinlock_init(&spinlock_coremap);
+
+	//Get the remaining available physical memory in sys in case ram_stealmen ran before
+	ram_getsize(&addr_lo, &addr_hi);
+
+	//Converts a physical address to a kernel virtual address.
+	core_map = (struct coremap *)PADDR_TO_KVADDR(addr_lo);
+	core_map->inUse = (int *)PADDR_TO_KVADDR(addr_lo);
+	core_map->containNext = (int *)PADDR_TO_KVADDR(addr_lo);
+
+	//Count frame numbers = size of array
+	frameCount = (addr_hi - addr_lo) / PAGE_SIZE;
+
+	//Insert coremap in physical mem, find new base addr of available phsical addr
+	addr_lo += sizeof(struct coremap) * frameCount + sizeof(int) * frameCount * 2; 
+
+	//After insertion, if start physical addr does not align the start of one page/frame, update
+	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
+
+	core_map->baseAddr = addr_lo;
+
+	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
+
+	for (int i = 0; i < frameCount; i++) {
+		core_map->inUse[i] = 0;
+		core_map->containNext[i] = 0;
+	}
+
+	/* coremap is successfully built */
+	iscmapCreated = true;
+
+#endif //OPT_A3
 }
 
 static
