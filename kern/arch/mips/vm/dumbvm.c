@@ -101,7 +101,7 @@ vm_bootstrap(void)
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
-	kprintf("ready for loop: %s %s\n", core_map->size, frameCount);
+	kprintf("ready for loop: %d %d\n", core_map->size, frameCount);
 	for (int i = 0; i < frameCount; i++) {
 		core_map->inUse[i] = 0;
 		core_map->containNext[i] = 0;
