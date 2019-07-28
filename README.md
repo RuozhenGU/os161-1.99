@@ -11,7 +11,7 @@
 
 1. Implement **Synchronization Primitives** including lock, semaphor and condition variables.
 2. Implement **System Calls** including execv, fork, sys__exit and address space for process.
-3. Implement **virtual memory management system** with page table, TLB and add ability to handle page fault, TLB miss and much more.
+3. Implement **Virtual Memory Management System** with page table, TLB and add ability to handle page fault, TLB miss and much more.
 4. Improved **scheduling and file system** for OS161
 
 ---
