@@ -223,7 +223,7 @@ vm_tlbshootdown(const struct tlbshootdown *ts)
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
-	kprintf("i am in vmfault");
+	kprintf("in vmfault");
 	vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
 	paddr_t paddr;
 	int i;
@@ -236,8 +236,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
 
 	switch (faulttype) {
+		
 	    case VM_FAULT_READONLY:
 #if OPT_A3
+				kprintf("erroe1");
 				return EX_MOD;
 #else
 				/* We always create pages read-write, so we can't get this */
@@ -248,6 +250,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
+		kprintf("error2");
+
 		return EINVAL;
 	}
 
@@ -257,6 +261,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
+		kprintf("erroe4");
+
 		return EFAULT;
 	}
 
@@ -266,6 +272,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * No address space set up. This is probably also a
 		 * kernel fault early in boot.
 		 */
+		kprintf("erroe3");
+
 		return EFAULT;
 	}
 	kprintf("i am here");
