@@ -108,7 +108,7 @@ vm_bootstrap(void)
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
-	//kprintf("coremapSize and frameSize: %d %d\n", core_map->size, frameCount);
+	kprintf("coremapSize and frameSize: %d %d\n", core_map->size, frameCount);
 
 	for (int i = 0; i < core_map->size; i++) {
 		core_map->inUse[i] = 0;
@@ -247,9 +247,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	    case VM_FAULT_READONLY:
 #if OPT_A3
+				kprintf("erro4\n");
 				return EX_MOD;
 #else
 				/* We always create pages read-write, so we can't get this */
+				kprintf("erro3\n");
 				panic("dumbvm: got VM_FAULT_READONLY\n");
 #endif
 
@@ -257,7 +259,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	    case VM_FAULT_WRITE:
 		break;
 	    default:
-
+		kprintf("erro2\n");
 		return EINVAL;
 	}
 
@@ -267,7 +269,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		 * in boot. Return EFAULT so as to panic instead of
 		 * getting into an infinite faulting loop.
 		 */
-		kprintf("EFAULT ERROR in vm_fault \n");
+		kprintf("erro1\n");
 		return EFAULT;
 	}
 
@@ -311,6 +313,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		paddr = (faultaddress - stackbase) + as->as_stackpbase;
 	}
 	else {
+		kprintf("erro5\n");
 		return EFAULT;
 	}
 
