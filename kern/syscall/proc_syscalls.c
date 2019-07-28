@@ -313,7 +313,7 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
 		result = copyoutstr(argv[i], (userptr_t)(stackptr), (sizeof(char) * (strlen(argv[i]) + 1)), NULL);
     kfree(argv[i]);
     if(result) {
-      kfree(addr_name)
+      kfree(addr_name);
       return result;
     }
 	}
@@ -323,7 +323,7 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
     stackptr -= ROUNDUP(sizeof(vaddr_t), 4);
 		copyout(&strAddr[i], (userptr_t)(stackptr), ROUNDUP(sizeof(vaddr_t), 4));
     if(result) {
-      kfree(addr_name)
+      kfree(addr_name);
       return result;
     }
   }
@@ -336,7 +336,7 @@ sys_execv(userptr_t interface_progname, userptr_t interface_args){
 
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
-  kfree(addr_name)
+  kfree(addr_name);
 	return EINVAL;
 }
 
