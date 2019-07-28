@@ -69,6 +69,8 @@ bool iscmapCreated = false;
 
 static struct spinlock spinlock_coremap;
 
+paddr_t addr_lo, addr_hi;
+
 #endif //OPT_A3
 
 void
@@ -76,7 +78,7 @@ vm_bootstrap(void)
 {
 #if OPT_A3
 	//add_lo and hi are physical addr
-	paddr_t addr_lo, addr_hi;
+
 
 	//initialize spinlock for core_map
 	spinlock_init(&spinlock_coremap);
@@ -104,7 +106,7 @@ vm_bootstrap(void)
 	if (addr_lo % PAGE_SIZE != 0) addr_lo++;
 
 
-	core_map->baseAddr = addr_lo + 1;
+	core_map->baseAddr = addr_lo;
 
 	core_map->size = (addr_hi - addr_lo) / PAGE_SIZE; /* recalculate */
 
@@ -169,6 +171,7 @@ getppages(unsigned long npages)
 				kprintf("here4\n");
 				spinlock_release(&stealmem_lock);
 				kprintf("%d\n", addr);
+				KASSERT(addr <= addr_hi and addr <= addr_lo);
 				return addr;
 				}
 			}
