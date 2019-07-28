@@ -139,13 +139,14 @@ getppages(unsigned long npages)
 		spinlock_release(&stealmem_lock);
 		return addr;
 	} else /* core map exists */ {
+		KASSERT(core_map->size >= pageRequired);
 		kprintf("getpage got called!\n");
 		for(int i = 0; i < core_map->size; i++) {
 			if (core_map->inUse[i] == 0) {
 				int sofar = i;
 				int count = 0;
 				/* check if the free mem is enough to use */
-				while(sofar < pageRequired && sofar < core_map->size) {
+				while(count < pageRequired && sofar < core_map->size) {
 					if (core_map->inUse[sofar]) break; //ensure the mem loc is still available
 					count++; sofar++;
 				}
