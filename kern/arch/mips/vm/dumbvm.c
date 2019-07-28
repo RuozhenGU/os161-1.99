@@ -615,7 +615,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	}
 #if OPT_A3
 	KASSERT(new->as_ptable1 && new->as_ptable2 && new->as_stackptable);
-	for(unsigned int i = 0; i < old->as_npages1; i++) {
+	for(unsigned int i = 0; i < old->as_npages1; i++) { 
 		memmove((void*)PADDR_TO_KVADDR(new->as_ptable1[i].frameNumber),
 						(const void*)PADDR_TO_KVADDR(old->as_ptable1[i].frameNumber), PAGE_SIZE);
 	}
